@@ -1,6 +1,35 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+const spriteSheet = {
+  image: new Image(),
+  frames: [
+    { x: 0, y: 0, w: 64, h: 64 },
+    { x: 64, y: 0, w: 64, h: 64 },
+    { x: 128, y: 0, w: 64, h: 64 },
+    { x: 192, y: 0, w: 64, h: 64 },
+    { x: 256, y: 0, w: 64, h: 64 },
+    { x: 320, y: 0, w: 64, h: 64 },
+    { x: 384, y: 0, w: 64, h: 64 },
+    { x: 448, y: 0, w: 64, h: 64 },
+    { x: 512, y: 0, w: 64, h: 64 },
+    { x: 576, y: 0, w: 64, h: 64 },
+    { x: 640, y: 0, w: 64, h: 64 },
+    { x: 704, y: 0, w: 64, h: 64 },
+    { x: 768, y: 0, w: 64, h: 64 },
+    { x: 832, y: 0, w: 64, h: 64 },
+    { x: 896, y: 0, w: 64, h: 64 },
+    { x: 960, y: 0, w: 64, h: 64 },
+    { x: 1024, y: 0, w: 64, h: 64 },
+  ],
+  loaded: false,
+};
+
+spriteSheet.image.src = 'assets/sprites/characters/character1.png';
+spriteSheet.image.onload = () => {
+  spriteSheet.loaded = true;
+};
+
 const world = {
   width: 1600,
   height: 1200,
@@ -12,9 +41,17 @@ const world = {
 const player = {
   x: world.width / 2,
   y: world.height / 2,
-  size: 32,
+  width: 64,
+  height: 64,
   speed: 220,
-  color: '#57c7ff',
+  facing: 'down',
+  moving: false,
+  animationTime: 0,
+  frameSpeed: 0.08,
+  blinkTime: 0,
+  blinkDuration: 0.12,
+  nextBlink: Math.random() * 2 + 2,
+  blinking: false,
 };
 
 const camera = {
@@ -31,6 +68,12 @@ const input = {
   down: false,
 };
 
+const animation = {
+  idle: 2,
+  walkHorizontal: [3, 4, 5, 6, 7, 8, 9],
+  walkVertical: [11, 12, 13, 14, 15, 16],
+};
+
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
   canvas.width = Math.floor(canvas.clientWidth * dpr);
@@ -44,18 +87,112 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-function update(delta) {
+function updateMovement(delta) {
   const move = player.speed * delta;
-  if (input.left) player.x -= move;
-  if (input.right) player.x += move;
-  if (input.up) player.y -= move;
-  if (input.down) player.y += move;
+  let moved = false;
 
-  player.x = clamp(player.x, player.size / 2, world.width - player.size / 2);
-  player.y = clamp(player.y, player.size / 2, world.height - player.size / 2);
+  if (input.left) {
+    player.x -= move;
+    player.facing = 'left';
+    moved = true;
+  } else if (input.right) {
+    player.x += move;
+    player.facing = 'right';
+    moved = true;
+  }
+
+  if (input.up) {
+    player.y -= move;
+    if (!moved) player.facing = 'up';
+    moved = true;
+  } else if (input.down) {
+    player.y += move;
+    if (!moved) player.facing = 'down';
+    moved = true;
+  }
+
+  player.moving = moved;
+  if (player.moving) {
+    player.animationTime += delta;
+  } else {
+    player.animationTime = 0;
+  }
+
+  if (player.blinking) {
+    player.blinkTime += delta;
+    if (player.blinkTime >= player.blinkDuration) {
+      player.blinking = false;
+      player.blinkTime = 0;
+      player.nextBlink = Math.random() * 2 + 2;
+    }
+  } else {
+    player.nextBlink -= delta;
+    if (player.nextBlink <= 0) {
+      player.blinking = true;
+      player.blinkTime = 0;
+    }
+  }
+}
+
+function update(delta) {
+  updateMovement(delta);
+
+  player.x = clamp(player.x, player.width / 2, world.width - player.width / 2);
+  player.y = clamp(player.y, player.height / 2, world.height - player.height / 2);
 
   camera.x = clamp(player.x - camera.width / 2, 0, world.width - camera.width);
   camera.y = clamp(player.y - camera.height / 2, 0, world.height - camera.height);
+}
+
+function getBodyFrame() {
+  if (!player.moving) {
+    return animation.idle;
+  }
+
+  let frames = animation.walkVertical;
+  if (player.facing === 'left' || player.facing === 'right') {
+    frames = animation.walkHorizontal;
+  }
+
+  const index = Math.floor(player.animationTime / player.frameSpeed) % frames.length;
+  return frames[index];
+}
+
+function getHeadFrame() {
+  return player.blinking ? 1 : 0;
+}
+
+function drawSpriteFrame(frameIndex, drawX, drawY, flip = false) {
+  const frame = spriteSheet.frames[frameIndex];
+  if (flip) {
+    ctx.save();
+    ctx.translate(drawX + frame.w, drawY);
+    ctx.scale(-1, 1);
+    ctx.drawImage(
+      spriteSheet.image,
+      frame.x,
+      frame.y,
+      frame.w,
+      frame.h,
+      0,
+      0,
+      frame.w,
+      frame.h,
+    );
+    ctx.restore();
+  } else {
+    ctx.drawImage(
+      spriteSheet.image,
+      frame.x,
+      frame.y,
+      frame.w,
+      frame.h,
+      drawX,
+      drawY,
+      frame.w,
+      frame.h,
+    );
+  }
 }
 
 function drawGrid() {
@@ -83,6 +220,22 @@ function drawGrid() {
   }
 }
 
+function drawPlayer() {
+  const bodyFrameIndex = getBodyFrame();
+  const headFrameIndex = getHeadFrame();
+  const drawX = player.x - player.width / 2;
+  const drawY = player.y - player.height / 2;
+  const flip = player.facing === 'left';
+
+  if (spriteSheet.loaded) {
+    drawSpriteFrame(bodyFrameIndex, drawX, drawY, flip);
+    drawSpriteFrame(headFrameIndex, drawX, drawY, flip);
+  } else {
+    ctx.fillStyle = player.color;
+    ctx.fillRect(drawX, drawY, player.width, player.height);
+  }
+}
+
 function drawWorld() {
   ctx.fillStyle = '#101010';
   ctx.fillRect(0, 0, camera.width, camera.height);
@@ -97,14 +250,7 @@ function drawWorld() {
 
   ctx.fillStyle = '#202020';
   ctx.fillRect(0, 0, world.width, world.height);
-
-  ctx.fillStyle = player.color;
-  ctx.fillRect(
-    player.x - player.size / 2,
-    player.y - player.size / 2,
-    player.size,
-    player.size,
-  );
+  drawPlayer();
 
   ctx.restore();
 }
@@ -113,7 +259,8 @@ function drawHUD() {
   ctx.fillStyle = '#ffffffcc';
   ctx.font = '14px Inter, system-ui, sans-serif';
   ctx.fillText(`Position: ${Math.round(player.x)}, ${Math.round(player.y)}`, 16, 24);
-  ctx.fillText('Use arrow keys or WASD to move the cube.', 16, 44);
+  ctx.fillText(`Facing: ${player.facing}`, 16, 44);
+  ctx.fillText('Use arrow keys or WASD to move the sprite.', 16, 64);
 }
 
 let lastTime = performance.now();
