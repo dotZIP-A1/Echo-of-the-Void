@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Echo of the Void - Base Demo</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, system-ui, sans-serif;
+      background: #080808;
+      color: #e8e8e8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at top, #11151b 0%, #060608 55%, #050505 100%);
+    }
+
+    main {
+      width: min(100%, 1024px);
+      padding: 16px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      background: rgba(10, 12, 18, 0.92);
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 18px 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      letter-spacing: 0.02em;
+    }
+
+    canvas {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      display: block;
+      background: #090a0f;
+    }
+
+    .notes {
+      padding: 18px 22px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #d8d8d8;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <div class="header">
+        <div>
+          <h1>Echo of the Void — 2D Cube Demo</h1>
+          <p style="margin: 0.25rem 0 0; color: #9da5b4; font-size: 0.95rem;">Move the cube through a simple 2D world.</p>
+        </div>
+      </div>
+      <canvas id="gameCanvas"></canvas>
+    </section>
+
+    <section class="panel notes">
+      <p>Controls: <strong>Arrow keys</strong> or <strong>WASD</strong>.</p>
+      <p>The cube moves across a bounded grid world, with a centered camera following the player.</p>
+    </section>
+  </main>
+
+  <script src="assets/js/game.js"></script>
+</body>
+</html>
